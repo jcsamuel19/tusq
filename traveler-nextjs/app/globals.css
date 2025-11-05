@@ -9,7 +9,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #fdfdfd;
     --foreground: #ededed;
   }
 }
@@ -24,4 +24,79 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+/* Slide-in animation from left */
+@keyframes slideInFromLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.heading-line {
+  animation: slideInFromLeft 0.8s ease-out forwards;
+  opacity: 0;
+}
+
+.heading-line:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.heading-line:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.heading-line:nth-child(3) {
+  animation-delay: 0.5s;
+}
+
+.heading-line:nth-child(4) {
+  animation-delay: 0.7s;
+}
+
+.heading-line:nth-child(5) {
+  animation-delay: 0.9s;
+}
+
+.heading-line:nth-child(6) {
+  animation-delay: 1.1s;
+}
+
+/* Blur-in animation for phone */
+@keyframes blurIn {
+  from {
+    opacity: 0;
+    filter: blur(20px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.phone-blur-in {
+  animation: blurIn 1.2s ease-out forwards;
+  opacity: 0;
+}
+
+/* Slide-in animation from right for phone */
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.phone-slide-in-right {
+  animation: slideInFromRight 0.8s ease-out forwards;
+  opacity: 0;
 }
