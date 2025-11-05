@@ -1,14 +1,11 @@
 import type { PhoneContentData } from '@/types';
 
 export const HERO_HEADING_LINES = [
-  'Discover the',
-  'hidden',
-  'Parts of the',
-  'world',
+  'We find the event.',
+  'You take the challenge.',
 ] as const;
 
-export const HERO_DESCRIPTION =
-  'Lorem ipsum dolor sit amet consectetur, adipisicing elit Lorem ipsum dolor sit amet.';
+export const HERO_DESCRIPTION = 'Whats the move?';
 
 export const PHONE_CONTENT_DATA: PhoneContentData = {
   topImage: '/assets/images/home/hiking1.jpg',

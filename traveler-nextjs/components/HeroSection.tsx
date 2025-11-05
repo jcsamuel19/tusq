@@ -90,17 +90,24 @@ export default function HeroSection() {
             </h1>
           </div>
 
-          <p className="text-lg lg:text-xl text-gray-600 max-w-xl leading-relaxed text-left">
-            {HERO_DESCRIPTION}
-          </p>
+          <div className="relative">
+            <p className="text-lg lg:text-xl text-gray-600 max-w-xl leading-relaxed text-left">
+              {HERO_DESCRIPTION}
+            </p>
+            <div className="absolute top-full left-0 -mt-[38px] ml-[15px]">
+              <Image
+                src="/images/arrow.png"
+                alt=""
+                width={190}
+                height={190}
+                className="object-contain -scale-x-100 -scale-y-100"
+              />
+            </div>
+          </div>
 
-          <div className="flex flex-col sm:flex-row items-start gap-4 pt-2">
+          <div className="flex flex-col sm:flex-row items-start gap-4 pt-[5px] pl-40 ml-[10px]">
             <Button href="#" variant="primary">
-              Get started
-            </Button>
-            <Button href="#" variant="secondary">
-              <i className="bi bi-play-circle-fill text-xl" aria-hidden="true" />
-              <span>Learn more</span>
+              Get Started
             </Button>
           </div>
         </div>
