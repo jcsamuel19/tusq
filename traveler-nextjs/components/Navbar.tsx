@@ -10,7 +10,7 @@ export default function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-[#fdfdfd]">
       <div className="w-full">
         <div className="flex justify-start items-center h-20 pl-4">
-          <Link href="/" className="flex items-center" aria-label="Home">
+          <Link href="/" className="flex items-center translate-y-[17px] -translate-x-5" aria-label="Home">
             <Image
               src="/images/logo.png"
               alt="Traveler Logo"

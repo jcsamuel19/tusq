@@ -2,6 +2,10 @@
 
 import Image from 'next/image';
 import Button from '@/components/ui/Button';
+import { useRef, useState } from 'react';
+import Modal from '@/components/ui/Modal';
+import PhoneInput from '@/components/ui/PhoneInput';
+import { isValidUSPhone, toE164US } from '@/lib/utils/phoneValidation';
 import {
   HERO_HEADING_LINES,
   HERO_DESCRIPTION,
@@ -32,6 +36,67 @@ function PhoneMockup() {
 }
 
 export default function HeroSection() {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const phoneRef = useRef('');
+  const errorRef = useRef<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [modalKey, setModalKey] = useState(0);
+
+  function openModal() {
+    setIsModalOpen(true);
+    phoneRef.current = '';
+    errorRef.current = null;
+    setError(null);
+    setAgeConfirmed(false);
+    setModalKey((prev) => prev + 1);
+  }
+
+  function closeModal() {
+    setIsModalOpen(false);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const phone = phoneRef.current;
+    const valid = isValidUSPhone(phone);
+    if (!valid) {
+      const errorMsg = 'Please enter a valid US phone number.';
+      errorRef.current = errorMsg;
+      setError(errorMsg);
+      return;
+    }
+    if (!ageConfirmed) {
+      const errorMsg = 'You must confirm you are 18 or older to continue.';
+      errorRef.current = errorMsg;
+      setError(errorMsg);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/users/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ phone }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to sign up');
+      }
+
+      // Success - close modal
+      closeModal();
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Failed to sign up. Please try again.';
+      errorRef.current = errorMsg;
+      setError(errorMsg);
+    }
+  }
+
   return (
     <section className="relative flex min-h-[85vh] w-full overflow-hidden pt-20">
       <div className="flex h-[85vh] w-full max-w-7xl mx-auto px-6 lg:px-12 py-8 lg:py-12">
@@ -62,7 +127,7 @@ export default function HeroSection() {
           </div>
 
           <div className="flex flex-col sm:flex-row items-start gap-4 pt-[15px] pl-40 ml-[10px]">
-            <Button href="#" variant="primary">
+            <Button variant="primary" onClick={openModal}>
               Get Started
             </Button>
           </div>
@@ -70,6 +135,63 @@ export default function HeroSection() {
 
         <PhoneMockup />
       </div>
+
+      <Modal isOpen={isModalOpen} onClose={closeModal} title="Get Started">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+              Phone Number (US only)
+            </label>
+            <PhoneInput
+              key={`phone-${modalKey}`}
+              id="phone"
+              autoFocus
+              value=""
+              onChange={(v) => {
+                phoneRef.current = v;
+                // Clear error on typing if one exists (only causes re-render if error was set)
+                if (errorRef.current) {
+                  errorRef.current = null;
+                  setError(null);
+                }
+              }}
+            />
+            {error ? (
+              <p className="text-sm text-red-600">{error}</p>
+            ) : null}
+          </div>
+
+          <div className="flex items-center gap-3 pt-1">
+            <input
+              id="ageConfirm"
+              type="checkbox"
+              checked={ageConfirmed}
+              onChange={(e) => setAgeConfirmed(e.target.checked)}
+              className="h-5 w-5 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
+            />
+            <label htmlFor="ageConfirm" className="text-sm text-gray-700">
+              You must be 18 or above to use Tusq.{' '}
+              <a href="/tos" className="text-blue-600 hover:underline">View our TOS.</a>
+            </label>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={closeModal}
+              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="rounded-lg bg-gray-900 px-4 py-2 font-semibold text-white hover:bg-gray-800"
+            >
+              Continue
+            </button>
+          </div>
+        </form>
+      </Modal>
     </section>
   );
 }

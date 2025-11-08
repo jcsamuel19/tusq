@@ -1,0 +1,13 @@
+{
+  "name": "tusq-render-cron",
+  "version": "1.0.0",
+  "description": "Cron job service for Tusq - runs on Render",
+  "main": "check-timeouts.js",
+  "scripts": {
+    "start": "node check-timeouts.js"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  }
+}
+
