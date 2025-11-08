@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button';
 import { useRef, useState } from 'react';
 import Modal from '@/components/ui/Modal';
 import PhoneInput from '@/components/ui/PhoneInput';
+import ChatWindow from '@/components/ui/ChatWindow';
 import { isValidUSPhone, toE164US } from '@/lib/utils/phoneValidation';
 import {
   HERO_HEADING_LINES,
@@ -37,6 +38,9 @@ function PhoneMockup() {
 
 export default function HeroSection() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userPhone, setUserPhone] = useState<string>('');
   const phoneRef = useRef('');
   const errorRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -88,8 +92,12 @@ export default function HeroSection() {
         throw new Error(data.error || 'Failed to sign up');
       }
 
-      // Success - close modal
+      // Success - show chat window (in-app messaging mode)
+      const e164Phone = toE164US(phone);
+      setUserId(data.userId);
+      setUserPhone(e164Phone || phone);
       closeModal();
+      setShowChat(true);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : 'Failed to sign up. Please try again.';
       errorRef.current = errorMsg;
@@ -192,6 +200,28 @@ export default function HeroSection() {
           </div>
         </form>
       </Modal>
+
+      {/* Chat Window Modal */}
+      {showChat && userId && (
+        <Modal 
+          isOpen={showChat} 
+          onClose={() => setShowChat(false)} 
+          title="Complete Your Survey"
+          size="large"
+        >
+          <div className="mt-4">
+            <ChatWindow
+              phoneNumber={userPhone}
+              userId={userId}
+              onComplete={() => {
+                setShowChat(false);
+                // Optionally show a success message
+                alert('Survey completed! Thank you for signing up.');
+              }}
+            />
+          </div>
+        </Modal>
+      )}
     </section>
   );
 }

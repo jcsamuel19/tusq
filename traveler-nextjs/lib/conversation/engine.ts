@@ -8,7 +8,16 @@ import { MESSAGES } from './messages';
 import { savePreference } from '../db/preferences';
 import { updateConversationState, updateConversationActivity } from '../db/conversations';
 import { markSurveyCompleted, markSurveyStarted } from '../db/users';
-import { sendSMS } from '../twilio/messages';
+// SMS sending is optional - only used if Twilio is configured
+let sendSMS: ((options: { to: string; body: string }) => Promise<{ success: boolean; messageSid?: string; error?: string }>) | null = null;
+
+try {
+  const twilioMessages = require('../twilio/messages');
+  sendSMS = twilioMessages.sendSMS;
+} catch (error) {
+  // Twilio not configured, that's okay for in-app mode
+  console.log('Twilio not configured - using in-app messaging mode');
+}
 
 const PREFERENCE_UPDATE_KEYWORDS = ['start', 'change preferences', 'update preferences', 'restart', 'change'];
 
@@ -84,11 +93,13 @@ export async function handleIncomingMessage(
       await markSurveyCompleted(userId);
       await updateConversationState(conversationId, 'completed', questionNum);
       
-      // Send completion message
-      await sendSMS({
-        to: phoneNumber,
-        body: MESSAGES.surveyComplete,
-      });
+      // Send completion message (only if SMS is configured)
+      if (sendSMS) {
+        await sendSMS({
+          to: phoneNumber,
+          body: MESSAGES.surveyComplete,
+        });
+      }
 
       return {
         response: MESSAGES.surveyComplete,

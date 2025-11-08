@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserByPhone, createUser } from '@/lib/db/users';
 import { createConversation } from '@/lib/db/conversations';
-import { sendSMS } from '@/lib/twilio/messages';
-import { MESSAGES } from '@/lib/conversation/messages';
 import { toE164US } from '@/lib/utils/phoneValidation';
+
+// Optional SMS sending - only if Twilio is configured
+let sendSMS: ((options: { to: string; body: string }) => Promise<{ success: boolean; messageSid?: string; error?: string }>) | null = null;
+let MESSAGES: { welcome: string } | null = null;
+
+try {
+  const twilioMessages = require('@/lib/twilio/messages');
+  sendSMS = twilioMessages.sendSMS;
+  const conversationMessages = require('@/lib/conversation/messages');
+  MESSAGES = conversationMessages.MESSAGES;
+} catch (error) {
+  // Twilio not configured - using in-app mode only
+  console.log('Twilio not configured - using in-app messaging mode');
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,18 +68,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Send welcome SMS
-    console.log(`📤 Attempting to send welcome SMS to: ${e164Phone}`);
-    const smsResult = await sendSMS({
-      to: e164Phone,
-      body: MESSAGES.welcome,
-    });
+    // Send welcome SMS (only if Twilio is configured)
+    if (sendSMS && MESSAGES) {
+      console.log(`📤 Attempting to send welcome SMS to: ${e164Phone}`);
+      const smsResult = await sendSMS({
+        to: e164Phone,
+        body: MESSAGES.welcome,
+      });
 
-    if (!smsResult.success) {
-      console.error('❌ Failed to send welcome SMS:', smsResult.error);
-      // Still return success since user was created
+      if (!smsResult.success) {
+        console.error('❌ Failed to send welcome SMS:', smsResult.error);
+        // Still return success since user was created
+      } else {
+        console.log(`✅ Welcome SMS sent successfully! Message SID: ${smsResult.messageSid}`);
+      }
     } else {
-      console.log(`✅ Welcome SMS sent successfully! Message SID: ${smsResult.messageSid}`);
+      console.log('📱 Using in-app messaging mode (no SMS sent)');
     }
 
     return NextResponse.json({

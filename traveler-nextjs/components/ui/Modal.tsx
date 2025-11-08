@@ -7,9 +7,10 @@ interface ModalProps {
   onClose: () => void;
   title?: string;
   children: React.ReactNode;
+  size?: 'default' | 'large';
 }
 
-export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export default function Modal({ isOpen, onClose, title, children, size = 'default' }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
 
@@ -47,7 +48,9 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className="relative mx-4 w-full max-w-md rounded-xl bg-white shadow-2xl outline-none animate-scaleIn"
+        className={`relative mx-4 w-full rounded-xl bg-white shadow-2xl outline-none animate-scaleIn ${
+          size === 'large' ? 'max-w-2xl' : 'max-w-md'
+        }`}
       >
         {title ? (
           <div className="flex items-center justify-between px-6 pt-5 pb-3">
