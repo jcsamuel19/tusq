@@ -5,11 +5,12 @@ import {
   createConversation,
 } from '@/lib/db/conversations';
 import { handleIncomingMessage } from '@/lib/conversation/engine';
+import { getWelcomeMessage } from '@/lib/conversation/messages';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, phoneNumber, message } = body;
+    const { userId, phoneNumber, message, firstName } = body;
 
     if (!userId || !phoneNumber || !message) {
       return NextResponse.json(
@@ -42,10 +43,12 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Handle initialization message
+      // Handle initialization message - return welcome message
       if (message === '__INIT__') {
+        const userFirstName = firstName || user.first_name || 'there';
+        const welcomeMsg = getWelcomeMessage(userFirstName);
         return NextResponse.json({
-          response: '',
+          welcomeMessage: welcomeMsg,
           completed: false,
           state: 'welcome',
         });
@@ -54,8 +57,17 @@ export async function POST(request: NextRequest) {
 
     // Handle initialization message for existing conversation
     if (message === '__INIT__') {
+      if (conversation.conversation_state === 'welcome') {
+        const userFirstName = firstName || user.first_name || 'there';
+        const welcomeMsg = getWelcomeMessage(userFirstName);
+        return NextResponse.json({
+          welcomeMessage: welcomeMsg,
+          completed: false,
+          state: 'welcome',
+        });
+      }
       return NextResponse.json({
-        response: '',
+        welcomeMessage: '',
         completed: conversation.conversation_state === 'completed',
         state: conversation.conversation_state,
       });
@@ -68,7 +80,8 @@ export async function POST(request: NextRequest) {
       conversation.conversation_state,
       conversation.current_question_index,
       message.trim(),
-      phoneNumber
+      phoneNumber,
+      firstName || user.first_name || undefined
     );
 
     return NextResponse.json({

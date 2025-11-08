@@ -1,11 +1,23 @@
 import { supabaseAdmin } from '../supabase/client';
 import type { User } from '@/types/conversation';
 
-export async function createUser(phoneNumber: string): Promise<User | null> {
+export async function createUser(
+  phoneNumber: string,
+  options?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    authUserId?: string;
+  }
+): Promise<User | null> {
   const { data, error } = await supabaseAdmin
     .from('users')
     .insert({
       phone_number: phoneNumber,
+      first_name: options?.firstName || null,
+      last_name: options?.lastName || null,
+      email: options?.email || null,
+      auth_user_id: options?.authUserId || null,
       last_activity_at: new Date().toISOString(),
     })
     .select()
@@ -18,6 +30,25 @@ export async function createUser(phoneNumber: string): Promise<User | null> {
 
   return data;
 }
+
+export async function getUserByAuthId(authUserId: string): Promise<User | null> {
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .select('*')
+    .eq('auth_user_id', authUserId)
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return null;
+    }
+    console.error('Error fetching user by auth ID:', error);
+    return null;
+  }
+
+  return data;
+}
+
 
 export async function getUserByPhone(phoneNumber: string): Promise<User | null> {
   const { data, error } = await supabaseAdmin

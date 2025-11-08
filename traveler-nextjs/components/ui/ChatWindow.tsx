@@ -12,10 +12,11 @@ interface Message {
 interface ChatWindowProps {
   phoneNumber: string;
   userId: string;
+  firstName: string;
   onComplete?: () => void;
 }
 
-export default function ChatWindow({ phoneNumber, userId, onComplete }: ChatWindowProps) {
+export default function ChatWindow({ phoneNumber, userId, firstName, onComplete }: ChatWindowProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -30,19 +31,10 @@ export default function ChatWindow({ phoneNumber, userId, onComplete }: ChatWind
   }, [messages]);
 
   useEffect(() => {
-    // Send welcome message when component mounts
-    const welcomeMessage: Message = {
-      id: Date.now().toString(),
-      text: 'Welcome to the Weekend Event Finder! To personalize your digests, I need to ask a few quick questions.\n\nWhat are your main interests? (e.g., music, art, sports, food)',
-      sender: 'system',
-      timestamp: new Date(),
-    };
-    setMessages([welcomeMessage]);
-    
-    // Initialize conversation if needed
+    // Initialize conversation and get welcome message
     const initializeConversation = async () => {
       try {
-        await fetch('/api/conversation/message', {
+        const response = await fetch('/api/conversation/message', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -50,16 +42,39 @@ export default function ChatWindow({ phoneNumber, userId, onComplete }: ChatWind
           body: JSON.stringify({
             userId,
             phoneNumber,
+            firstName,
             message: '__INIT__', // Special message to initialize
           }),
         });
+
+        const data = await response.json();
+        
+        if (data.welcomeMessage) {
+          const welcomeMessage: Message = {
+            id: Date.now().toString(),
+            text: data.welcomeMessage,
+            sender: 'system',
+            timestamp: new Date(),
+          };
+          setMessages([welcomeMessage]);
+        }
       } catch (error) {
         console.error('Error initializing conversation:', error);
+        // Fallback welcome message
+        const welcomeMessage: Message = {
+          id: Date.now().toString(),
+          text: `Welcome to the party, ${firstName}! To find your ultimate side quest, I need a few details. First, what's your primary location? (City or Zip Code)`,
+          sender: 'system',
+          timestamp: new Date(),
+        };
+        setMessages([welcomeMessage]);
       }
     };
     
-    initializeConversation();
-  }, [userId, phoneNumber]);
+    if (userId && phoneNumber && firstName) {
+      initializeConversation();
+    }
+  }, [userId, phoneNumber, firstName]);
 
   const handleSend = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -85,6 +100,7 @@ export default function ChatWindow({ phoneNumber, userId, onComplete }: ChatWind
         body: JSON.stringify({
           userId,
           phoneNumber,
+          firstName,
           message: inputValue.trim(),
         }),
       });

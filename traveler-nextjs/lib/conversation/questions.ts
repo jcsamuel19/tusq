@@ -6,28 +6,28 @@ export interface QuestionConfig {
 
 export const SURVEY_QUESTIONS: QuestionConfig[] = [
   {
-    key: 'interests',
-    text: 'What are your main interests? (e.g., music, art, sports, food)',
+    key: 'location',
+    text: "What's your primary location? (City or Zip Code)",
     order: 1,
   },
   {
-    key: 'location',
-    text: 'What city or area are you located in?',
+    key: 'event_type',
+    text: 'Are you looking for (A) In-person events, (B) Online events, or (C) Both?',
     order: 2,
   },
   {
-    key: 'activity_type',
-    text: 'What types of activities do you prefer? (e.g., outdoor, indoor, social, solo)',
+    key: 'interests',
+    text: "What kind of events interest you most? (e.g., 'Live Music,' 'Art,' 'Tech,' 'Food,' 'Outdoors')",
     order: 3,
   },
   {
-    key: 'time_preference',
-    text: 'When do you typically have free time? (e.g., weekends, evenings, weekday afternoons)',
+    key: 'keywords',
+    text: "Any specific keywords we should look out for? (e.g., 'jazz,' 'hackathon,' 'yoga'—or just say 'no')",
     order: 4,
   },
   {
-    key: 'budget',
-    text: 'What is your typical budget for weekend activities? (e.g., free, $10-20, $20-50)',
+    key: 'social_vibe',
+    text: "What's your preferred social vibe? (e.g., 'Lively and social,' 'Relaxed and chill,' 'Networking,' 'Family-friendly')",
     order: 5,
   },
 ];
@@ -43,4 +43,3 @@ export function getQuestionByOrder(order: number): QuestionConfig | undefined {
 export function getTotalQuestions(): number {
   return SURVEY_QUESTIONS.length;
 }
-

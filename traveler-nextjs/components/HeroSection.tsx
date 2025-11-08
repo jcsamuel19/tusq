@@ -2,15 +2,14 @@
 
 import Image from 'next/image';
 import Button from '@/components/ui/Button';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import Modal from '@/components/ui/Modal';
-import PhoneInput from '@/components/ui/PhoneInput';
-import ChatWindow from '@/components/ui/ChatWindow';
-import { isValidUSPhone, toE164US } from '@/lib/utils/phoneValidation';
+import RegistrationForm from '@/components/ui/RegistrationForm';
 import {
   HERO_HEADING_LINES,
   HERO_DESCRIPTION,
 } from '@/constants/hero';
+import { useRouter } from 'next/navigation';
 
 const PHONE_FRAME_SIZE = {
   width: 400,
@@ -38,44 +37,28 @@ function PhoneMockup() {
 
 export default function HeroSection() {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [showChat, setShowChat] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userPhone, setUserPhone] = useState<string>('');
-  const phoneRef = useRef('');
-  const errorRef = useRef<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [ageConfirmed, setAgeConfirmed] = useState(false);
-  const [modalKey, setModalKey] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   function openModal() {
     setIsModalOpen(true);
-    phoneRef.current = '';
-    errorRef.current = null;
     setError(null);
-    setAgeConfirmed(false);
-    setModalKey((prev) => prev + 1);
   }
 
   function closeModal() {
     setIsModalOpen(false);
+    setError(null);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const phone = phoneRef.current;
-    const valid = isValidUSPhone(phone);
-    if (!valid) {
-      const errorMsg = 'Please enter a valid US phone number.';
-      errorRef.current = errorMsg;
-      setError(errorMsg);
-      return;
-    }
-    if (!ageConfirmed) {
-      const errorMsg = 'You must confirm you are 18 or older to continue.';
-      errorRef.current = errorMsg;
-      setError(errorMsg);
-      return;
-    }
+  async function handleRegistration(data: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    password: string;
+  }) {
+    setIsLoading(true);
+    setError(null);
 
     try {
       const response = await fetch('/api/users/signup', {
@@ -83,25 +66,25 @@ export default function HeroSection() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ phone }),
+        body: JSON.stringify(data),
       });
 
-      const data = await response.json();
+      const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to sign up');
+        throw new Error(result.error || 'Failed to create account');
       }
 
-      // Success - show chat window (in-app messaging mode)
-      const e164Phone = toE164US(phone);
-      setUserId(data.userId);
-      setUserPhone(e164Phone || phone);
+      // Success - redirect to onboarding
       closeModal();
-      setShowChat(true);
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Failed to sign up. Please try again.';
-      errorRef.current = errorMsg;
-      setError(errorMsg);
+      router.push(
+        `/onboarding?userId=${result.userId}&phone=${encodeURIComponent(result.phoneNumber)}&firstName=${encodeURIComponent(result.firstName)}`
+      );
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create account. Please try again.';
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -144,84 +127,13 @@ export default function HeroSection() {
         <PhoneMockup />
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={closeModal} title="Get Started">
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-              Phone Number (US only)
-            </label>
-            <PhoneInput
-              key={`phone-${modalKey}`}
-              id="phone"
-              autoFocus
-              value=""
-              onChange={(v) => {
-                phoneRef.current = v;
-                // Clear error on typing if one exists (only causes re-render if error was set)
-                if (errorRef.current) {
-                  errorRef.current = null;
-                  setError(null);
-                }
-              }}
-            />
-            {error ? (
-              <p className="text-sm text-red-600">{error}</p>
-            ) : null}
-          </div>
-
-          <div className="flex items-center gap-3 pt-1">
-            <input
-              id="ageConfirm"
-              type="checkbox"
-              checked={ageConfirmed}
-              onChange={(e) => setAgeConfirmed(e.target.checked)}
-              className="h-5 w-5 rounded border-gray-300 text-gray-900 focus:ring-gray-900"
-            />
-            <label htmlFor="ageConfirm" className="text-sm text-gray-700">
-              You must be 18 or above to use Tusq.{' '}
-              <a href="/tos" className="text-blue-600 hover:underline">View our TOS.</a>
-            </label>
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={closeModal}
-              className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-700 hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="rounded-lg bg-gray-900 px-4 py-2 font-semibold text-white hover:bg-gray-800"
-            >
-              Continue
-            </button>
-          </div>
-        </form>
+      <Modal isOpen={isModalOpen} onClose={closeModal} title="Create Your Account" size="large">
+        <RegistrationForm
+          onSubmit={handleRegistration}
+          error={error}
+          isLoading={isLoading}
+        />
       </Modal>
-
-      {/* Chat Window Modal */}
-      {showChat && userId && (
-        <Modal 
-          isOpen={showChat} 
-          onClose={() => setShowChat(false)} 
-          title="Complete Your Survey"
-          size="large"
-        >
-          <div className="mt-4">
-            <ChatWindow
-              phoneNumber={userPhone}
-              userId={userId}
-              onComplete={() => {
-                setShowChat(false);
-                // Optionally show a success message
-                alert('Survey completed! Thank you for signing up.');
-              }}
-            />
-          </div>
-        </Modal>
-      )}
     </section>
   );
 }

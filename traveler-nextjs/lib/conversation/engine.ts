@@ -4,7 +4,7 @@ import {
   getTotalQuestions,
   SURVEY_QUESTIONS,
 } from './questions';
-import { MESSAGES } from './messages';
+import { MESSAGES, getWelcomeMessage, getConfirmationMessage } from './messages';
 import { savePreference } from '../db/preferences';
 import { updateConversationState, updateConversationActivity } from '../db/conversations';
 import { markSurveyCompleted, markSurveyStarted } from '../db/users';
@@ -34,7 +34,8 @@ export async function handleIncomingMessage(
   currentState: ConversationState,
   currentQuestionIndex: number,
   message: string,
-  phoneNumber: string
+  phoneNumber: string,
+  firstName?: string
 ): Promise<{ response: string; newState: ConversationState; newQuestionIndex: number }> {
   // Update conversation activity
   await updateConversationActivity(conversationId);
@@ -62,15 +63,16 @@ export async function handleIncomingMessage(
 
   // Handle welcome state
   if (currentState === 'welcome') {
-    // User responded to welcome - the welcome message already asked the first question
+    // User responded to welcome - the welcome message already asked the first question (location)
     // So this response is the answer to question 1
     await markSurveyStarted(userId);
     await savePreference(userId, SURVEY_QUESTIONS[0].key, message);
     await updateConversationState(conversationId, 'question_2', 2);
     
     const nextQuestion = getQuestionByOrder(2);
+    const confirmation = getConfirmationMessage(1, getTotalQuestions());
     return {
-      response: nextQuestion?.text || MESSAGES.error,
+      response: confirmation ? `${confirmation} ${nextQuestion?.text || ''}` : (nextQuestion?.text || MESSAGES.error),
       newState: 'question_2',
       newQuestionIndex: 2,
     };
@@ -84,7 +86,19 @@ export async function handleIncomingMessage(
     // Save the answer
     const currentQuestion = getQuestionByOrder(questionNum);
     if (currentQuestion) {
-      await savePreference(userId, currentQuestion.key, message);
+      // Normalize event_type answers (A, B, C)
+      let answer = message.trim();
+      if (currentQuestion.key === 'event_type') {
+        const normalized = answer.toUpperCase();
+        if (normalized === 'A' || normalized.includes('IN-PERSON')) {
+          answer = 'In-person events';
+        } else if (normalized === 'B' || normalized.includes('ONLINE')) {
+          answer = 'Online events';
+        } else if (normalized === 'C' || normalized.includes('BOTH')) {
+          answer = 'Both';
+        }
+      }
+      await savePreference(userId, currentQuestion.key, answer);
     }
 
     // Check if this is the last question
@@ -116,8 +130,17 @@ export async function handleIncomingMessage(
       const nextState = `question_${nextQuestionNum}` as ConversationState;
       await updateConversationState(conversationId, nextState, nextQuestionNum);
       
+      // Add confirmation message for previous answers
+      const confirmation = getConfirmationMessage(questionNum, totalQuestions);
+      
+      // For question 5 (social_vibe), add "Last question: " prefix
+      let responseText = nextQuestion.text;
+      if (nextQuestionNum === 5) {
+        responseText = `Last question: ${responseText}`;
+      }
+      
       return {
-        response: nextQuestion.text,
+        response: confirmation ? `${confirmation} ${responseText}` : responseText,
         newState: nextState,
         newQuestionIndex: nextQuestionNum,
       };
