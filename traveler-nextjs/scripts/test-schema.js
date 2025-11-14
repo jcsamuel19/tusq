@@ -74,7 +74,7 @@ async function testSchema() {
 
   // Test 3: Try to query with the new columns
   console.log('\nTest 3: Testing column access...');
-  const columnsToTest = ['first_name', 'last_name', 'email', 'auth_user_id'];
+  const columnsToTest = ['first_name', 'last_name', 'auth_user_id'];
   
   for (const column of columnsToTest) {
     try {
@@ -103,7 +103,6 @@ async function testSchema() {
         phone_number: testPhone,
         first_name: 'Test',
         last_name: 'User',
-        email: 'test@example.com',
         auth_user_id: null, // We'll test with null first
       })
       .select()

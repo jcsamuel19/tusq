@@ -10,18 +10,17 @@ export type ConversationState =
 
 export interface User {
   id: string;
-  phone_number: string;
+  auth_user_id: string | null;
   first_name: string | null;
   last_name: string | null;
-  email: string | null;
-  auth_user_id: string | null;
-  created_at: string;
-  updated_at: string;
-  survey_completed_at: string | null;
-  survey_started_at: string | null;
-  last_activity_at: string;
+  phone_number: string;
   is_active: boolean;
   digest_paused: boolean;
+  survey_started_at: string | null;
+  survey_completed_at: string | null;
+  last_activity_at: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Conversation {

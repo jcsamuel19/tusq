@@ -6,7 +6,6 @@ export async function createUser(
   options?: {
     firstName?: string;
     lastName?: string;
-    email?: string;
     authUserId?: string;
   }
 ): Promise<User | null> {
@@ -16,7 +15,6 @@ export async function createUser(
       phone_number: phoneNumber,
       first_name: options?.firstName || null,
       last_name: options?.lastName || null,
-      email: options?.email || null,
       auth_user_id: options?.authUserId || null,
       last_activity_at: new Date().toISOString(),
     })

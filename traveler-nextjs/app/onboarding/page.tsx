@@ -55,10 +55,7 @@ export default function OnboardingPage() {
             phoneNumber={phoneNumber}
             userId={userId}
             firstName={firstName}
-            onComplete={() => {
-              // Redirect to home or dashboard after completion
-              router.push('/?survey=complete');
-            }}
+            // Keep chat window open after survey completion - no redirect
           />
         </div>
       </div>

@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user already exists by phone
+    // Check if user already exists by phone in our database
     const existingUser = await getUserByPhone(e164Phone);
     if (existingUser) {
       return NextResponse.json(
@@ -43,12 +43,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create Supabase Auth user (using phone as email for now, or generate email)
-    // Note: Supabase Auth requires an email, so we'll use a generated email
-    const email = `${e164Phone.replace(/\+/g, '')}@tusq.local`;
+    // Create Supabase Auth user
+    // Note: Supabase Auth requires an email, so we generate one internally for auth only
+    // We don't store email in our users table
+    const authEmail = `${e164Phone.replace(/\+/g, '')}@tusq.local`;
     
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email,
+      email: authEmail,
       password,
       phone: e164Phone,
       email_confirm: true, // Auto-confirm email
@@ -61,25 +62,47 @@ export async function POST(request: NextRequest) {
 
     if (authError || !authData.user) {
       console.error('Error creating auth user:', authError);
+      
+      // Handle email_exists error (422) - means account already exists in Auth
+      if (authError?.status === 422 || authError?.code === 'email_exists' || authError?.message?.includes('email_exists')) {
+        // Double-check our database to be sure
+        const doubleCheckUser = await getUserByPhone(e164Phone);
+        
+        if (doubleCheckUser) {
+          // User exists in our database - return appropriate error
+          return NextResponse.json(
+            { error: 'An account with this phone number already exists' },
+            { status: 400 }
+          );
+        }
+        
+        // Auth user exists but not in our database - orphaned auth user
+        // Return user-friendly error message
+        return NextResponse.json(
+          { error: 'An account with this phone number already exists. Please try logging in instead.' },
+          { status: 400 }
+        );
+      }
+
+      // Generic error response for other auth errors
+      const errorMessage = authError?.message || 'Failed to create account';
       return NextResponse.json(
-        { error: authError?.message || 'Failed to create account' },
-        { status: 500 }
+        { error: errorMessage },
+        { status: authError?.status || 500 }
       );
     }
 
-    // Create user profile in our database
+    // Create user profile in our database (no email stored)
     console.log('Creating user profile with data:', {
       phone: e164Phone,
       firstName,
       lastName,
-      email,
       authUserId: authData.user.id,
     });
     
     const user = await createUser(e164Phone, {
       firstName,
       lastName,
-      email,
       authUserId: authData.user.id,
     });
 

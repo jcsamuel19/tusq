@@ -1,18 +1,30 @@
 -- Create users table
+-- Column order organized logically:
+-- 1. Primary key and identifiers
+-- 2. User profile information
+-- 3. Contact information
+-- 4. Status flags
+-- 5. Survey tracking
+-- 6. Activity tracking
+-- 7. System metadata
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  auth_user_id UUID UNIQUE,
+  first_name TEXT,
+  last_name TEXT,
   phone_number TEXT UNIQUE NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  survey_completed_at TIMESTAMP WITH TIME ZONE,
-  survey_started_at TIMESTAMP WITH TIME ZONE,
-  last_activity_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   is_active BOOLEAN DEFAULT TRUE,
-  digest_paused BOOLEAN DEFAULT FALSE
+  digest_paused BOOLEAN DEFAULT FALSE,
+  survey_started_at TIMESTAMP WITH TIME ZONE,
+  survey_completed_at TIMESTAMP WITH TIME ZONE,
+  last_activity_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create index on phone_number for fast lookups
+-- Create indexes for fast lookups
 CREATE INDEX IF NOT EXISTS idx_users_phone_number ON users(phone_number);
+CREATE INDEX IF NOT EXISTS idx_users_auth_user_id ON users(auth_user_id);
 
 -- Create conversations table
 CREATE TABLE IF NOT EXISTS conversations (

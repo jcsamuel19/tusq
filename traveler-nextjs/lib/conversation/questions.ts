@@ -7,28 +7,23 @@ export interface QuestionConfig {
 export const SURVEY_QUESTIONS: QuestionConfig[] = [
   {
     key: 'location',
-    text: "What's your primary location? (City or Zip Code)",
+    text: "What city are you in?", // Text is in welcome message, but kept for reference
     order: 1,
   },
   {
-    key: 'event_type',
-    text: 'Are you looking for (A) In-person events, (B) Online events, or (C) Both?',
+    key: 'interests',
+    text: "Hmmm what type of events are you looking for? (e.g., Music, Comedy, etc.)",
     order: 2,
   },
   {
-    key: 'interests',
-    text: "What kind of events interest you most? (e.g., 'Live Music,' 'Art,' 'Tech,' 'Food,' 'Outdoors')",
+    key: 'keywords',
+    text: "Anything specific I should look for that this event would have? If not, just type 'nah'",
     order: 3,
   },
   {
-    key: 'keywords',
-    text: "Any specific keywords we should look out for? (e.g., 'jazz,' 'hackathon,' 'yoga'—or just say 'no')",
-    order: 4,
-  },
-  {
     key: 'social_vibe',
-    text: "What's your preferred social vibe? (e.g., 'Lively and social,' 'Relaxed and chill,' 'Networking,' 'Family-friendly')",
-    order: 5,
+    text: "Last one whats the environment look like? (e.g.Upscale, Casual)",
+    order: 4,
   },
 ];
 

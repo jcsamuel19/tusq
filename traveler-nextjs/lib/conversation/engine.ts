@@ -4,10 +4,11 @@ import {
   getTotalQuestions,
   SURVEY_QUESTIONS,
 } from './questions';
-import { MESSAGES, getWelcomeMessage, getConfirmationMessage } from './messages';
+import { MESSAGES, getWelcomeMessage } from './messages';
 import { savePreference } from '../db/preferences';
 import { updateConversationState, updateConversationActivity } from '../db/conversations';
 import { markSurveyCompleted, markSurveyStarted } from '../db/users';
+import { isValidLocation } from '../utils/locationValidation';
 // SMS sending is optional - only used if Twilio is configured
 let sendSMS: ((options: { to: string; body: string }) => Promise<{ success: boolean; messageSid?: string; error?: string }>) | null = null;
 
@@ -43,16 +44,16 @@ export async function handleIncomingMessage(
   // Check if user wants to update preferences
   if (isPreferenceUpdateRequest(message)) {
     if (currentState === 'completed') {
-      // User wants to restart - send restart message and first question
-      await updateConversationState(conversationId, 'question_1', 1);
-      const firstQuestion = getQuestionByOrder(1);
+      // User wants to restart - go back to welcome state
+      await updateConversationState(conversationId, 'welcome', 0);
+      // Return just the restart confirmation - welcome messages will be sent separately
       return {
-        response: `${MESSAGES.restartConfirmation}\n\n${firstQuestion?.text || ''}`,
-        newState: 'question_1',
-        newQuestionIndex: 1,
+        response: MESSAGES.restartConfirmation,
+        newState: 'welcome',
+        newQuestionIndex: 0,
       };
     }
-    // Already in survey, just acknowledge
+    // Already in survey, just acknowledge with current question
     const currentQuestion = getQuestionByOrder(currentQuestionIndex);
     return {
       response: currentQuestion?.text || MESSAGES.error,
@@ -64,15 +65,26 @@ export async function handleIncomingMessage(
   // Handle welcome state
   if (currentState === 'welcome') {
     // User responded to welcome - the welcome message already asked the first question (location)
-    // So this response is the answer to question 1
+    // Validate location input
+    const trimmedMessage = message.trim();
+    
+    if (!isValidLocation(trimmedMessage)) {
+      // Invalid location - stay in welcome state and show error
+      return {
+        response: MESSAGES.invalidLocation,
+        newState: 'welcome',
+        newQuestionIndex: 0,
+      };
+    }
+    
+    // Valid location - save and proceed to question 2 (interests)
     await markSurveyStarted(userId);
-    await savePreference(userId, SURVEY_QUESTIONS[0].key, message);
+    await savePreference(userId, SURVEY_QUESTIONS[0].key, trimmedMessage);
     await updateConversationState(conversationId, 'question_2', 2);
     
     const nextQuestion = getQuestionByOrder(2);
-    const confirmation = getConfirmationMessage(1, getTotalQuestions());
     return {
-      response: confirmation ? `${confirmation} ${nextQuestion?.text || ''}` : (nextQuestion?.text || MESSAGES.error),
+      response: nextQuestion?.text || MESSAGES.error,
       newState: 'question_2',
       newQuestionIndex: 2,
     };
@@ -86,22 +98,11 @@ export async function handleIncomingMessage(
     // Save the answer
     const currentQuestion = getQuestionByOrder(questionNum);
     if (currentQuestion) {
-      // Normalize event_type answers (A, B, C)
-      let answer = message.trim();
-      if (currentQuestion.key === 'event_type') {
-        const normalized = answer.toUpperCase();
-        if (normalized === 'A' || normalized.includes('IN-PERSON')) {
-          answer = 'In-person events';
-        } else if (normalized === 'B' || normalized.includes('ONLINE')) {
-          answer = 'Online events';
-        } else if (normalized === 'C' || normalized.includes('BOTH')) {
-          answer = 'Both';
-        }
-      }
+      const answer = message.trim();
       await savePreference(userId, currentQuestion.key, answer);
     }
 
-    // Check if this is the last question
+    // Check if this is the last question (now question 4, social_vibe)
     if (questionNum >= totalQuestions) {
       // Survey complete
       await markSurveyCompleted(userId);
@@ -130,17 +131,9 @@ export async function handleIncomingMessage(
       const nextState = `question_${nextQuestionNum}` as ConversationState;
       await updateConversationState(conversationId, nextState, nextQuestionNum);
       
-      // Add confirmation message for previous answers
-      const confirmation = getConfirmationMessage(questionNum, totalQuestions);
-      
-      // For question 5 (social_vibe), add "Last question: " prefix
-      let responseText = nextQuestion.text;
-      if (nextQuestionNum === 5) {
-        responseText = `Last question: ${responseText}`;
-      }
-      
+      // No confirmation messages in new flow - just show next question
       return {
-        response: confirmation ? `${confirmation} ${responseText}` : responseText,
+        response: nextQuestion.text,
         newState: nextState,
         newQuestionIndex: nextQuestionNum,
       };
@@ -150,17 +143,18 @@ export async function handleIncomingMessage(
   // Completed state - user can restart or update preferences
   if (currentState === 'completed') {
     if (isPreferenceUpdateRequest(message)) {
-      await updateConversationState(conversationId, 'question_1', 1);
-      const firstQuestion = getQuestionByOrder(1);
+      // Restart survey - go back to welcome state
+      await updateConversationState(conversationId, 'welcome', 0);
+      // Return just the restart confirmation - welcome messages will be sent separately
       return {
-        response: `${MESSAGES.restartConfirmation}\n\n${firstQuestion?.text || ''}`,
-        newState: 'question_1',
-        newQuestionIndex: 1,
+        response: MESSAGES.restartConfirmation,
+        newState: 'welcome',
+        newQuestionIndex: 0,
       };
     }
     // User sent a message but survey is complete - just acknowledge
     return {
-      response: `Thanks! If you want to update your preferences, just reply 'START'.`,
+      response: `I'm still finding events give me a sec... Update your preferences, reply 'START'.`,
       newState: 'completed',
       newQuestionIndex: currentQuestionIndex,
     };

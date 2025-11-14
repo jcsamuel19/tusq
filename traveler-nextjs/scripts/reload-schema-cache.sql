@@ -13,5 +13,5 @@ NOTIFY pgrst, 'reload schema';
 SELECT column_name, data_type 
 FROM information_schema.columns 
 WHERE table_name = 'users' 
-AND column_name IN ('first_name', 'last_name', 'email', 'auth_user_id');
+AND column_name IN ('first_name', 'last_name', 'auth_user_id');
 

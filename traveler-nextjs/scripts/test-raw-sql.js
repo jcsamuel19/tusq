@@ -41,7 +41,7 @@ async function checkColumns() {
       console.log('⚠️  RPC method not available, trying alternative...');
       
       // Alternative: Check by trying to select each column
-      const columns = ['id', 'phone_number', 'first_name', 'last_name', 'email', 'auth_user_id', 'created_at'];
+      const columns = ['id', 'phone_number', 'first_name', 'last_name', 'auth_user_id', 'created_at'];
       console.log('\nTesting column existence by attempting selects:\n');
       
       for (const col of columns) {
@@ -71,7 +71,7 @@ async function testMigration() {
   console.log('\n🧪 Testing migration application...\n');
   
   // Check if migration columns exist
-  const requiredColumns = ['first_name', 'last_name', 'email', 'auth_user_id'];
+  const requiredColumns = ['first_name', 'last_name', 'auth_user_id'];
   const missingColumns = [];
 
   for (const col of requiredColumns) {
@@ -96,11 +96,9 @@ async function testMigration() {
 ALTER TABLE users 
 ADD COLUMN IF NOT EXISTS first_name TEXT,
 ADD COLUMN IF NOT EXISTS last_name TEXT,
-ADD COLUMN IF NOT EXISTS email TEXT,
 ADD COLUMN IF NOT EXISTS auth_user_id UUID UNIQUE;
 
 CREATE INDEX IF NOT EXISTS idx_users_auth_user_id ON users(auth_user_id);
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL;
     `);
   } else {
     console.log('\n✅ All migration columns exist!');

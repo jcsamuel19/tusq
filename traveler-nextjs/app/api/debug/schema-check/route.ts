@@ -7,7 +7,7 @@ import { supabaseAdmin } from '@/lib/supabase/client';
  */
 export async function GET(request: NextRequest) {
   try {
-    const columnsToCheck = ['first_name', 'last_name', 'email', 'auth_user_id'];
+    const columnsToCheck = ['first_name', 'last_name', 'auth_user_id'];
     const results: Record<string, { exists: boolean; error?: string }> = {};
 
     for (const column of columnsToCheck) {
@@ -52,11 +52,9 @@ export async function GET(request: NextRequest) {
 ALTER TABLE users 
 ADD COLUMN IF NOT EXISTS first_name TEXT,
 ADD COLUMN IF NOT EXISTS last_name TEXT,
-ADD COLUMN IF NOT EXISTS email TEXT,
 ADD COLUMN IF NOT EXISTS auth_user_id UUID UNIQUE;
 
 CREATE INDEX IF NOT EXISTS idx_users_auth_user_id ON users(auth_user_id);
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email) WHERE email IS NOT NULL;
       `.trim(),
     });
   } catch (error: any) {

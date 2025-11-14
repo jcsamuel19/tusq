@@ -46,9 +46,9 @@ export async function POST(request: NextRequest) {
       // Handle initialization message - return welcome message
       if (message === '__INIT__') {
         const userFirstName = firstName || user.first_name || 'there';
-        const welcomeMsg = getWelcomeMessage(userFirstName);
+        const welcomeMessages = getWelcomeMessage(userFirstName);
         return NextResponse.json({
-          welcomeMessage: welcomeMsg,
+          welcomeMessages: welcomeMessages,
           completed: false,
           state: 'welcome',
         });
@@ -59,15 +59,15 @@ export async function POST(request: NextRequest) {
     if (message === '__INIT__') {
       if (conversation.conversation_state === 'welcome') {
         const userFirstName = firstName || user.first_name || 'there';
-        const welcomeMsg = getWelcomeMessage(userFirstName);
+        const welcomeMessages = getWelcomeMessage(userFirstName);
         return NextResponse.json({
-          welcomeMessage: welcomeMsg,
+          welcomeMessages: welcomeMessages,
           completed: false,
           state: 'welcome',
         });
       }
       return NextResponse.json({
-        welcomeMessage: '',
+        welcomeMessages: [],
         completed: conversation.conversation_state === 'completed',
         state: conversation.conversation_state,
       });
@@ -83,6 +83,18 @@ export async function POST(request: NextRequest) {
       phoneNumber,
       firstName || user.first_name || undefined
     );
+
+    // If the new state is 'welcome' (restart scenario), include welcome messages
+    if (result.newState === 'welcome' && conversation.conversation_state === 'completed') {
+      const userFirstName = firstName || user.first_name || 'there';
+      const welcomeMessages = getWelcomeMessage(userFirstName);
+      return NextResponse.json({
+        response: result.response, // Restart confirmation message
+        welcomeMessages: welcomeMessages, // Welcome messages array
+        completed: false,
+        state: result.newState,
+      });
+    }
 
     return NextResponse.json({
       response: result.response,

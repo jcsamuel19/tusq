@@ -21,9 +21,34 @@ export default function ChatWindow({ phoneNumber, userId, firstName, onComplete 
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const initializedRef = useRef<boolean>(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Helper function to generate random delay between 1-5 seconds (inclusive)
+  const getRandomSystemDelay = (): number => {
+    return Math.floor(Math.random() * (5000 - 1000 + 1)) + 1000; // 1000ms to 5000ms
+  };
+
+  // Helper function to add system message with random delay
+  const addSystemMessageWithDelay = (text: string, baseId?: string, onComplete?: () => void) => {
+    const delay = getRandomSystemDelay();
+    setTimeout(() => {
+      const systemMessage: Message = {
+        id: baseId || (Date.now() + Math.random()).toString(),
+        text: text,
+        sender: 'system',
+        timestamp: new Date(),
+      };
+      setMessages((prev) => [...prev, systemMessage]);
+      // Call onComplete callback if provided (to set isLoading to false)
+      if (onComplete) {
+        onComplete();
+      }
+    }, delay);
   };
 
   useEffect(() => {
@@ -31,8 +56,14 @@ export default function ChatWindow({ phoneNumber, userId, firstName, onComplete 
   }, [messages]);
 
   useEffect(() => {
+    // Prevent duplicate initialization
+    if (initializedRef.current) return;
+    
     // Initialize conversation and get welcome message
     const initializeConversation = async () => {
+      // Mark as initialized immediately to prevent duplicate runs
+      initializedRef.current = true;
+      
       try {
         const response = await fetch('/api/conversation/message', {
           method: 'POST',
@@ -49,25 +80,66 @@ export default function ChatWindow({ phoneNumber, userId, firstName, onComplete 
 
         const data = await response.json();
         
-        if (data.welcomeMessage) {
-          const welcomeMessage: Message = {
-            id: Date.now().toString(),
-            text: data.welcomeMessage,
-            sender: 'system',
-            timestamp: new Date(),
-          };
-          setMessages([welcomeMessage]);
+        if (data.welcomeMessages && Array.isArray(data.welcomeMessages)) {
+          // Display messages sequentially with cumulative random delays (1-5 seconds each)
+          // Show typing animation between each message
+          let cumulativeDelay = 0;
+          data.welcomeMessages.forEach((text: string, index: number) => {
+            const messageDelay = getRandomSystemDelay(); // Random delay for this message
+            cumulativeDelay += messageDelay;
+            
+            // Show typing animation before this message
+            setTimeout(() => {
+              setIsLoading(true);
+            }, cumulativeDelay - messageDelay);
+            
+            // Hide typing animation and show message
+            setTimeout(() => {
+              setIsLoading(false);
+              const newMessage: Message = {
+                id: (Date.now() + index).toString(),
+                text: text,
+                sender: 'system',
+                timestamp: new Date(),
+              };
+              setMessages((prev) => [...prev, newMessage]);
+            }, cumulativeDelay);
+          });
+        } else if (data.welcomeMessage) {
+          // Fallback for single message (backward compatibility)
+          addSystemMessageWithDelay(data.welcomeMessage, Date.now().toString());
         }
       } catch (error) {
         console.error('Error initializing conversation:', error);
-        // Fallback welcome message
-        const welcomeMessage: Message = {
-          id: Date.now().toString(),
-          text: `Welcome to the party, ${firstName}! To find your ultimate side quest, I need a few details. First, what's your primary location? (City or Zip Code)`,
-          sender: 'system',
-          timestamp: new Date(),
-        };
-        setMessages([welcomeMessage]);
+        // Fallback welcome messages
+        const fallbackMessages = [
+          `I heard you want a side quests ${firstName}??`,
+          `I dont think your ready 😂`,
+          `Where you at rn? `
+        ];
+        
+        let cumulativeDelay = 0;
+        fallbackMessages.forEach((text, index) => {
+          const messageDelay = getRandomSystemDelay(); // Random delay for this message
+          cumulativeDelay += messageDelay;
+          
+          // Show typing animation before this message
+          setTimeout(() => {
+            setIsLoading(true);
+          }, cumulativeDelay - messageDelay);
+          
+          // Hide typing animation and show message
+          setTimeout(() => {
+            setIsLoading(false);
+            const newMessage: Message = {
+              id: (Date.now() + index).toString(),
+              text: text,
+              sender: 'system',
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, newMessage]);
+          }, cumulativeDelay);
+        });
       }
     };
     
@@ -108,40 +180,73 @@ export default function ChatWindow({ phoneNumber, userId, firstName, onComplete 
       const data = await response.json();
 
       if (response.ok && data.response) {
-        const systemMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          text: data.response,
-          sender: 'system',
-          timestamp: new Date(),
-        };
-
-        setMessages((prev) => [...prev, systemMessage]);
-
-        // Check if survey is complete
-        if (data.completed) {
-          setTimeout(() => {
-            onComplete?.();
-          }, 2000);
+        // Check if this is a restart scenario with welcome messages
+        if (data.welcomeMessages && Array.isArray(data.welcomeMessages)) {
+          // First show the restart confirmation message
+          addSystemMessageWithDelay(
+            data.response,
+            (Date.now() + 1).toString(),
+            () => {
+              // After restart confirmation, show welcome messages sequentially with typing animation
+              let cumulativeDelay = 0;
+              data.welcomeMessages.forEach((text: string, index: number) => {
+                const messageDelay = getRandomSystemDelay();
+                cumulativeDelay += messageDelay;
+                
+                // Show typing animation before this message
+                setTimeout(() => {
+                  setIsLoading(true);
+                }, cumulativeDelay - messageDelay);
+                
+                // Hide typing animation and show message
+                setTimeout(() => {
+                  setIsLoading(false);
+                  const newMessage: Message = {
+                    id: (Date.now() + index + 1000).toString(),
+                    text: text,
+                    sender: 'system',
+                    timestamp: new Date(),
+                  };
+                  setMessages((prev) => [...prev, newMessage]);
+                }, cumulativeDelay);
+              });
+            }
+          );
+        } else {
+          // Regular response - add system message with random delay (1-5 seconds)
+          // Keep isLoading true until message appears
+          addSystemMessageWithDelay(
+            data.response,
+            (Date.now() + 1).toString(),
+            () => {
+              setIsLoading(false);
+            }
+          );
         }
+
+        // Survey is complete - keep chat window open (no redirect)
+        // onComplete callback removed to keep user on chat window
       } else {
-        const errorMessage: Message = {
-          id: (Date.now() + 1).toString(),
-          text: data.error || "I'm not really sure what you're saying. Could you try again?",
-          sender: 'system',
-          timestamp: new Date(),
-        };
-        setMessages((prev) => [...prev, errorMessage]);
+        // Add error message with random delay (1-5 seconds)
+        // Keep isLoading true until message appears
+        addSystemMessageWithDelay(
+          data.error || "I'm not really sure what you're saying. Could you try again?",
+          (Date.now() + 1).toString(),
+          () => {
+            setIsLoading(false);
+          }
+        );
       }
     } catch (error) {
-      const errorMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: 'Sorry, something went wrong. Please try again.',
-        sender: 'system',
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
+      // Add error message with random delay (1-5 seconds)
+      // Keep isLoading true until message appears
+      addSystemMessageWithDelay(
+        'Sorry, something went wrong. Please try again.',
+        (Date.now() + 1).toString(),
+        () => {
+          setIsLoading(false);
+        }
+      );
     }
   };
 
@@ -149,6 +254,8 @@ export default function ChatWindow({ phoneNumber, userId, firstName, onComplete 
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+      // Blur the textarea after sending
+      textareaRef.current?.blur();
     }
   };
 
@@ -210,11 +317,12 @@ export default function ChatWindow({ phoneNumber, userId, firstName, onComplete 
       <div className="p-4 border-t border-gray-200 bg-white rounded-b-lg">
         <div className="flex gap-2">
           <textarea
+            ref={textareaRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Type your message..."
-            className="flex-1 resize-none border border-gray-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="flex-1 resize-none border border-gray-300 rounded-lg px-4 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             rows={2}
             disabled={isLoading}
           />
