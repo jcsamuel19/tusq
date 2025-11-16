@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { previewSupabase } from '@/lib/supabase/preview-client';
+import { supabaseAdmin } from '@/lib/supabase/client';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,9 +32,41 @@ export async function POST(request: NextRequest) {
     const userAgent = request.headers.get('user-agent') || 'unknown';
     const source = 'landing_page'; // Can be updated if needed
 
-    // Insert into preview_signups table
-    const { data, error } = await previewSupabase
-      .from('preview_signups')
+    // Check if admin client is available (requires service role key)
+    if (!supabaseAdmin) {
+      return NextResponse.json(
+        { error: 'Server configuration error. Please set SUPABASE_SERVICE_ROLE_KEY2' },
+        { status: 500 }
+      );
+    }
+
+    // Check if phone number already exists
+    const { data: existingSignup, error: checkError } = await supabaseAdmin
+      .from('signups')
+      .select('phone_number')
+      .eq('phone_number', phoneDigits)
+      .maybeSingle();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      // PGRST116 is "not found" which is fine, other errors are not
+      console.error('Error checking for duplicate phone:', checkError);
+      return NextResponse.json(
+        { error: 'Error checking for existing signup' },
+        { status: 500 }
+      );
+    }
+
+    if (existingSignup) {
+      return NextResponse.json(
+        { error: 'This phone number is already on the waitlist' },
+        { status: 400 }
+      );
+    }
+
+    // Insert into signups table (main TUSQ database)
+    // Using admin client to bypass RLS for server-side operations
+    const { data, error } = await supabaseAdmin
+      .from('signups')
       .insert({
         first_name: firstName.trim(),
         last_name: lastName.trim(),
@@ -49,8 +81,26 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Error inserting signup:', error);
+      
+      // Provide more specific error messages
+      if (error.code === '42P01') {
+        // Table doesn't exist
+        return NextResponse.json(
+          { error: 'Database table not found. Please run the migration: 001_initial_schema.sql' },
+          { status: 500 }
+        );
+      }
+      
+      if (error.code === '42501') {
+        // Permission denied (RLS policy issue)
+        return NextResponse.json(
+          { error: 'Permission denied. Please check Row Level Security policies.' },
+          { status: 500 }
+        );
+      }
+      
       return NextResponse.json(
-        { error: 'Failed to save signup information' },
+        { error: error.message || 'Failed to save signup information' },
         { status: 500 }
       );
     }

@@ -71,7 +71,7 @@ export default function HeroSection() {
                 onClick={() => setIsSignupModalOpen(true)}
                 variant="primary"
               >
-                Get Started
+                Join Waitlist
               </Button>
             </div>
           </div>

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect, useRef, useCallback } from 'react';
+import Image from 'next/image';
 import Modal from '@/components/ui/Modal';
 import Button from '@/components/ui/Button';
 import { cn } from '@/lib/utils/cn';
@@ -25,6 +26,52 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const autoCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const resetForm = useCallback(() => {
+    setFirstName('');
+    setLastName('');
+    setPhoneNumber('');
+    setTermsAccepted(false);
+    setErrors({});
+    setShowSuccess(false);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    if (!isSubmitting) {
+      // Clear auto-close timeout if user manually closes
+      if (autoCloseTimeoutRef.current) {
+        clearTimeout(autoCloseTimeoutRef.current);
+        autoCloseTimeoutRef.current = null;
+      }
+      resetForm();
+      onClose();
+    }
+  }, [isSubmitting, resetForm, onClose]);
+
+  // Auto-close modal after 4 seconds when success is shown
+  useEffect(() => {
+    if (showSuccess) {
+      // Clear any existing timeout
+      if (autoCloseTimeoutRef.current) {
+        clearTimeout(autoCloseTimeoutRef.current);
+      }
+      
+      // Set new timeout to close after 4 seconds
+      autoCloseTimeoutRef.current = setTimeout(() => {
+        handleClose();
+      }, 4000);
+    }
+
+    // Cleanup: clear timeout on unmount or when showSuccess changes
+    return () => {
+      if (autoCloseTimeoutRef.current) {
+        clearTimeout(autoCloseTimeoutRef.current);
+        autoCloseTimeoutRef.current = null;
+      }
+    };
+  }, [showSuccess, handleClose]);
 
   // Format phone number as user types (US format)
   const formatPhoneNumber = (value: string) => {
@@ -105,9 +152,14 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
         throw new Error(errorData.error || 'Failed to create account');
       }
 
-      // Success - close modal and reset form
-      onClose();
-      resetForm();
+      // Success - show success message
+      // Clear form fields but keep success state
+      setFirstName('');
+      setLastName('');
+      setPhoneNumber('');
+      setTermsAccepted(false);
+      setErrors({});
+      setShowSuccess(true);
     } catch (error) {
       setErrors({
         submit: error instanceof Error ? error.message : 'Something went wrong. Please try again.',
@@ -117,39 +169,57 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
     }
   };
 
-  const resetForm = () => {
-    setFirstName('');
-    setLastName('');
-    setPhoneNumber('');
-    setTermsAccepted(false);
-    setErrors({});
-  };
-
-  const handleClose = () => {
-    if (!isSubmitting) {
-      resetForm();
-      onClose();
-    }
-  };
-
   return (
     <Modal isOpen={isOpen} onClose={handleClose}>
       <div className="p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Create Your Account</h2>
-          <button
-            onClick={handleClose}
-            disabled={isSubmitting}
-            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            aria-label="Close modal"
-          >
-            <i className="bi bi-x text-2xl"></i>
-          </button>
-        </div>
+        {/* Success View */}
+        {showSuccess ? (
+          <div>
+            {/* Header */}
+            <div className="flex items-center justify-end mb-6">
+              <button
+                onClick={handleClose}
+                disabled={isSubmitting}
+                className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Close modal"
+              >
+                <i className="bi bi-x text-2xl"></i>
+              </button>
+            </div>
+            <div className="text-center pt-6 pb-8">
+              {/* Green Checkmark */}
+              <div className="flex justify-center mb-4">
+                <Image
+                  src="/assets/images/home/check.png"
+                  alt="Success checkmark"
+                  width={64}
+                  height={64}
+                  className="w-16 h-16"
+                />
+              </div>
+              {/* Success Message */}
+              <h3 className="text-xl font-semibold text-gray-900">
+                Thanks for joining the waitlist
+              </h3>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Join Waitlist</h2>
+              <button
+                onClick={handleClose}
+                disabled={isSubmitting}
+                className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Close modal"
+              >
+                <i className="bi bi-x text-2xl"></i>
+              </button>
+            </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-4">
           {/* First Name */}
           <div>
             <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
@@ -166,7 +236,7 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
                 }
               }}
               className={cn(
-                'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900',
+                'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 text-black',
                 errors.firstName ? 'border-red-500' : 'border-gray-300'
               )}
               placeholder="John"
@@ -193,7 +263,7 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
                 }
               }}
               className={cn(
-                'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900',
+                'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 text-black',
                 errors.lastName ? 'border-red-500' : 'border-gray-300'
               )}
               placeholder="Doe"
@@ -215,7 +285,7 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
               value={phoneNumber}
               onChange={handlePhoneChange}
               className={cn(
-                'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900',
+                'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 text-black',
                 errors.phoneNumber ? 'border-red-500' : 'border-gray-300'
               )}
               placeholder="(555) 123-4567"
@@ -282,10 +352,12 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
               variant="primary"
               disabled={isSubmitting}
             >
-              {isSubmitting ? 'Creating...' : 'Create Account'}
+              {isSubmitting ? 'Joining...' : 'Join now'}
             </Button>
           </div>
         </form>
+          </>
+        )}
       </div>
     </Modal>
   );

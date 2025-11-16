@@ -11,6 +11,7 @@ interface ButtonProps {
   className?: string;
   onClick?: () => void;
   type?: 'button' | 'submit' | 'reset';
+  disabled?: boolean;
 }
 
 export default function Button({
@@ -20,6 +21,7 @@ export default function Button({
   className,
   onClick,
   type = 'button',
+  disabled = false,
 }: ButtonProps) {
   const baseStyles =
     'inline-flex items-center justify-center px-8 py-4 font-semibold text-base rounded-lg transition-all duration-300';
@@ -31,18 +33,28 @@ export default function Button({
       'border-2 border-gray-900 text-gray-900 bg-white hover:bg-gray-900 hover:text-white',
   };
 
-  const combinedClassName = cn(baseStyles, variants[variant], className);
+  const combinedClassName = cn(
+    baseStyles,
+    variants[variant],
+    disabled && 'opacity-50 cursor-not-allowed pointer-events-none',
+    className
+  );
 
   if (href) {
     return (
-      <Link href={href} className={combinedClassName}>
+      <Link href={href} className={combinedClassName} aria-disabled={disabled}>
         {children}
       </Link>
     );
   }
 
   return (
-    <button type={type} onClick={onClick} className={combinedClassName}>
+    <button 
+      type={type} 
+      onClick={onClick} 
+      className={combinedClassName}
+      disabled={disabled}
+    >
       {children}
     </button>
   );
