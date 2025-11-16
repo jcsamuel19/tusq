@@ -42,13 +42,13 @@ export default function Modal({ isOpen, onClose, title, children, size = 'defaul
       aria-labelledby={title ? 'modal-title' : undefined}
     >
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm md:backdrop-blur animate-fadeIn"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm md:backdrop-blur animate-fadeIn opacity-0"
         onClick={onClose}
       />
       <div
         ref={dialogRef}
         tabIndex={-1}
-        className={`relative mx-4 w-full rounded-xl bg-white shadow-2xl outline-none animate-scaleIn ${
+        className={`relative mx-4 w-full rounded-xl bg-white shadow-2xl outline-none animate-scaleIn opacity-0 ${
           size === 'large' ? 'max-w-2xl' : 'max-w-md'
         }`}
       >
@@ -71,14 +71,6 @@ export default function Modal({ isOpen, onClose, title, children, size = 'defaul
         ) : null}
         <div className="px-6 pb-6 pt-2">{children}</div>
       </div>
-
-      {/* Animations */}
-      <style jsx>{`
-        .animate-fadeIn { animation: fadeIn 200ms ease-out forwards; opacity: 0; }
-        .animate-scaleIn { animation: scaleIn 220ms ease-out forwards; opacity: 0; transform: scale(0.98); }
-        @keyframes fadeIn { to { opacity: 1; } }
-        @keyframes scaleIn { to { opacity: 1; transform: scale(1); } }
-      `}</style>
     </div>
   );
 }

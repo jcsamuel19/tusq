@@ -2,7 +2,7 @@ export function getWelcomeMessage(firstName: string): string[] {
   return [
     `I heard you want a side quests ${firstName}??`,
     `I dont think your ready 😂`,
-    `What city are you in? `
+    `What city are you in? (e.g. city or zip)`
   ];
 }
 
