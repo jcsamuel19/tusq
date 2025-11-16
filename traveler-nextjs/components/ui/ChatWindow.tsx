@@ -93,18 +93,24 @@ export default function ChatWindow({ phoneNumber, userId, firstName, onComplete 
               setIsLoading(true);
             }, cumulativeDelay - messageDelay);
             
-            // Hide typing animation and show message
-            setTimeout(() => {
-              setIsLoading(false);
-              const newMessage: Message = {
-                id: (Date.now() + index).toString(),
-                text: text,
-                sender: 'system',
-                timestamp: new Date(),
-              };
-              setMessages((prev) => [...prev, newMessage]);
-            }, cumulativeDelay);
-          });
+          // Hide typing animation and show message
+          setTimeout(() => {
+            setIsLoading(false);
+            const newMessage: Message = {
+              id: (Date.now() + index).toString(),
+              text: text,
+              sender: 'system',
+              timestamp: new Date(),
+            };
+            setMessages((prev) => [...prev, newMessage]);
+            // Refocus textarea after last welcome message
+            if (index === data.welcomeMessages.length - 1) {
+              setTimeout(() => {
+                textareaRef.current?.focus();
+              }, 100);
+            }
+          }, cumulativeDelay);
+        });
         } else if (data.welcomeMessage) {
           // Fallback for single message (backward compatibility)
           addSystemMessageWithDelay(data.welcomeMessage, Date.now().toString());
@@ -138,6 +144,12 @@ export default function ChatWindow({ phoneNumber, userId, firstName, onComplete 
               timestamp: new Date(),
             };
             setMessages((prev) => [...prev, newMessage]);
+            // Refocus textarea after last fallback welcome message
+            if (index === fallbackMessages.length - 1) {
+              setTimeout(() => {
+                textareaRef.current?.focus();
+              }, 100);
+            }
           }, cumulativeDelay);
         });
       }
@@ -208,6 +220,12 @@ export default function ChatWindow({ phoneNumber, userId, firstName, onComplete 
                     timestamp: new Date(),
                   };
                   setMessages((prev) => [...prev, newMessage]);
+                  // Refocus textarea after last welcome message
+                  if (index === data.welcomeMessages.length - 1) {
+                    setTimeout(() => {
+                      textareaRef.current?.focus();
+                    }, 100);
+                  }
                 }, cumulativeDelay);
               });
             }
@@ -220,6 +238,10 @@ export default function ChatWindow({ phoneNumber, userId, firstName, onComplete 
             (Date.now() + 1).toString(),
             () => {
               setIsLoading(false);
+              // Refocus textarea so user can type immediately
+              setTimeout(() => {
+                textareaRef.current?.focus();
+              }, 100);
             }
           );
         }
@@ -234,6 +256,10 @@ export default function ChatWindow({ phoneNumber, userId, firstName, onComplete 
           (Date.now() + 1).toString(),
           () => {
             setIsLoading(false);
+            // Refocus textarea so user can type immediately
+            setTimeout(() => {
+              textareaRef.current?.focus();
+            }, 100);
           }
         );
       }
@@ -245,6 +271,10 @@ export default function ChatWindow({ phoneNumber, userId, firstName, onComplete 
         (Date.now() + 1).toString(),
         () => {
           setIsLoading(false);
+          // Refocus textarea so user can type immediately
+          setTimeout(() => {
+            textareaRef.current?.focus();
+          }, 100);
         }
       );
     }
@@ -254,8 +284,7 @@ export default function ChatWindow({ phoneNumber, userId, firstName, onComplete 
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
-      // Blur the textarea after sending
-      textareaRef.current?.blur();
+      // Keep focus on textarea so user can continue typing
     }
   };
 
@@ -268,7 +297,7 @@ export default function ChatWindow({ phoneNumber, userId, firstName, onComplete 
             T
           </div>
           <div>
-            <h3 className="font-semibold text-gray-900">Weekend Event Finder</h3>
+            <h3 className="font-semibold text-gray-900">TUSQ</h3>
             <p className="text-sm text-gray-500">{phoneNumber}</p>
           </div>
         </div>

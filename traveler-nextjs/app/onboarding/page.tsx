@@ -45,10 +45,10 @@ export default function OnboardingPage() {
         <div className="w-full max-w-3xl">
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Welcome, {firstName}! 👋
+              The Ultimate Side Quest
             </h1>
             <p className="text-gray-600">
-              Let's personalize your experience. This will only take a minute.
+              Your Challenge Awaits!
             </p>
           </div>
           <ChatWindow

@@ -17,7 +17,7 @@ export const MESSAGES = {
 
 If you ever want to restart your personalized free event finder, just reply 'START'`,
 
-  surveyComplete: `Aight finding somethings rn, give me 6-7min ill send you a text when I find something`,
+  surveyComplete: `Aight finding something rn, give me 6-7min, ill send you a text when I find something`,
 
   restartConfirmation: `Great! Let's update your preferences to make sure we find the perfect events for you.`,
 };

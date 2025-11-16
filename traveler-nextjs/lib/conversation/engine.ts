@@ -102,7 +102,7 @@ export async function handleIncomingMessage(
       await savePreference(userId, currentQuestion.key, answer);
     }
 
-    // Check if this is the last question (now question 4, social_vibe)
+    // Check if this is the last question (now question 5, exclusion_keywords)
     if (questionNum >= totalQuestions) {
       // Survey complete
       await markSurveyCompleted(userId);

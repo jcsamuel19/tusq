@@ -67,11 +67,11 @@ CREATE TABLE IF NOT EXISTS survey_questions (
 
 -- Insert default survey questions
 INSERT INTO survey_questions (question_key, question_text, question_order, is_active) VALUES
-  ('interests', 'What are your main interests? (e.g., music, art, sports, food)', 1, TRUE),
-  ('location', 'What city or area are you located in?', 2, TRUE),
-  ('activity_type', 'What types of activities do you prefer? (e.g., outdoor, indoor, social, solo)', 3, TRUE),
-  ('time_preference', 'When do you typically have free time? (e.g., weekends, evenings, weekday afternoons)', 4, TRUE),
-  ('budget', 'What is your typical budget for weekend activities? (e.g., free, $10-20, $20-50)', 5, TRUE)
+  ('location', 'What city are you in? (e.g. city or zip)', 1, TRUE),
+  ('interests', 'Hmmm what type of events are you looking for? (Music, Comedy, etc.)', 2, TRUE),
+  ('activity_level', 'Are we thinking less than 100 people or more?', 3, TRUE),
+  ('groupsize', 'Who''s rolling with you? Just solo missions, a date night, or a full squad (4+ people)?', 4, TRUE),
+  ('exclusion_keywords', 'Any hard passes? Tell me what you ABSOLUTELY do NOT want to see', 5, TRUE)
 ON CONFLICT (question_key) DO NOTHING;
 
 -- Enable Row Level Security (RLS) for Supabase
