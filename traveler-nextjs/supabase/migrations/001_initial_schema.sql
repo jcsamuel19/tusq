@@ -94,3 +94,5 @@ CREATE POLICY "Service role has full access to user_preferences" ON user_prefere
 CREATE POLICY "Service role has full access to survey_questions" ON survey_questions
   FOR ALL USING (auth.role() = 'service_role');
 
+
+
