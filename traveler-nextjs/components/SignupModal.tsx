@@ -14,6 +14,7 @@ interface SignupModalProps {
 interface FormErrors {
   firstName?: string;
   lastName?: string;
+  email?: string;
   phoneNumber?: string;
   terms?: string;
   submit?: string;
@@ -22,6 +23,7 @@ interface FormErrors {
 export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -32,6 +34,7 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
   const resetForm = useCallback(() => {
     setFirstName('');
     setLastName('');
+    setEmail('');
     setPhoneNumber('');
     setTermsAccepted(false);
     setErrors({});
@@ -97,6 +100,12 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
     }
   };
 
+  // Validate email format
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
 
@@ -108,12 +117,19 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
       newErrors.lastName = 'Last name is required';
     }
 
-    // Validate phone number (should be 10 digits after formatting)
-    const phoneDigits = phoneNumber.replace(/\D/g, '');
-    if (!phoneNumber.trim()) {
-      newErrors.phoneNumber = 'Phone number is required';
-    } else if (phoneDigits.length !== 10) {
-      newErrors.phoneNumber = 'Please enter a valid US phone number';
+    // Validate email (required)
+    if (!email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!isValidEmail(email.trim())) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+
+    // Validate phone number (optional, but if provided, must be valid)
+    if (phoneNumber.trim()) {
+      const phoneDigits = phoneNumber.replace(/\D/g, '');
+      if (phoneDigits.length !== 10) {
+        newErrors.phoneNumber = 'Please enter a valid US phone number';
+      }
     }
 
     if (!termsAccepted) {
@@ -143,7 +159,8 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
         body: JSON.stringify({
           firstName: firstName.trim(),
           lastName: lastName.trim(),
-          phoneNumber: phoneNumber.replace(/\D/g, ''),
+          email: email.trim().toLowerCase(),
+          phoneNumber: phoneNumber.trim() ? phoneNumber.replace(/\D/g, '') : null,
         }),
       });
 
@@ -156,6 +173,7 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
       // Clear form fields but keep success state
       setFirstName('');
       setLastName('');
+      setEmail('');
       setPhoneNumber('');
       setTermsAccepted(false);
       setErrors({});
@@ -274,10 +292,37 @@ export default function SignupModal({ isOpen, onClose }: SignupModalProps) {
             )}
           </div>
 
+          {/* Email */}
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              Email *
+            </label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errors.email) {
+                  setErrors({ ...errors, email: undefined });
+                }
+              }}
+              className={cn(
+                'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-900 text-black',
+                errors.email ? 'border-red-500' : 'border-gray-300'
+              )}
+              placeholder="john@example.com"
+              disabled={isSubmitting}
+            />
+            {errors.email && (
+              <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+            )}
+          </div>
+
           {/* Phone Number */}
           <div>
             <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
-              Phone Number (US only) *
+              Phone Number (US only) <span className="text-gray-500 font-normal">(optional)</span>
             </label>
             <input
               type="tel"

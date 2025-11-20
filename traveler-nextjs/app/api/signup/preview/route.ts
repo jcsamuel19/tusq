@@ -4,23 +4,35 @@ import { supabaseAdmin } from '@/lib/supabase/client';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { firstName, lastName, phoneNumber } = body;
+    const { firstName, lastName, email, phoneNumber } = body;
 
     // Validate required fields
-    if (!firstName || !lastName || !phoneNumber) {
+    if (!firstName || !lastName || !email) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // Validate phone number format (should be 10 digits)
-    const phoneDigits = phoneNumber.replace(/\D/g, '');
-    if (phoneDigits.length !== 10) {
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
       return NextResponse.json(
-        { error: 'Invalid phone number format' },
+        { error: 'Invalid email format' },
         { status: 400 }
       );
+    }
+
+    // Validate phone number format if provided (should be 10 digits)
+    let phoneDigits = null;
+    if (phoneNumber) {
+      phoneDigits = phoneNumber.replace(/\D/g, '');
+      if (phoneDigits.length !== 10) {
+        return NextResponse.json(
+          { error: 'Invalid phone number format' },
+          { status: 400 }
+        );
+      }
     }
 
     // Extract metadata from request
@@ -40,16 +52,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if phone number already exists
+    // Check if email already exists
     const { data: existingSignup, error: checkError } = await supabaseAdmin
       .from('signups')
-      .select('phone_number')
-      .eq('phone_number', phoneDigits)
+      .select('email')
+      .eq('email', email.trim().toLowerCase())
       .maybeSingle();
 
     if (checkError && checkError.code !== 'PGRST116') {
       // PGRST116 is "not found" which is fine, other errors are not
-      console.error('Error checking for duplicate phone:', checkError);
+      console.error('Error checking for duplicate email:', checkError);
       return NextResponse.json(
         { error: 'Error checking for existing signup' },
         { status: 500 }
@@ -58,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     if (existingSignup) {
       return NextResponse.json(
-        { error: 'This phone number is already on the waitlist' },
+        { error: 'This email is already on the waitlist' },
         { status: 400 }
       );
     }
@@ -70,6 +82,7 @@ export async function POST(request: NextRequest) {
       .insert({
         first_name: firstName.trim(),
         last_name: lastName.trim(),
+        email: email.trim().toLowerCase(),
         phone_number: phoneDigits,
         ip_address: ipAddress,
         user_agent: userAgent,
@@ -96,6 +109,14 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { error: 'Permission denied. Please check Row Level Security policies.' },
           { status: 500 }
+        );
+      }
+
+      // Handle unique constraint violation for email
+      if (error.code === '23505') {
+        return NextResponse.json(
+          { error: 'This email is already on the waitlist' },
+          { status: 400 }
         );
       }
       
