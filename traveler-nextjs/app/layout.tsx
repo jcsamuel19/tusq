@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Traveler - Discover the Hidden Parts of the World",
+  title: "Tusq - We find the event. You take the challenge.",
   description: "A modern travel website to discover amazing destinations around the world",
 };
 
