@@ -9,6 +9,7 @@ interface RegistrationFormProps {
     firstName: string;
     lastName: string;
     phone: string;
+    email: string;
     password: string;
   }) => Promise<void>;
   error: string | null;
@@ -18,6 +19,7 @@ interface RegistrationFormProps {
 export default function RegistrationForm({ onSubmit, error, isLoading }: RegistrationFormProps) {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
   const phoneRef = useRef('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -33,6 +35,15 @@ export default function RegistrationForm({ onSubmit, error, isLoading }: Registr
 
     if (!lastName.trim()) {
       errors.lastName = 'Last name is required';
+    }
+
+    if (!email.trim()) {
+      errors.email = 'Email is required';
+    } else {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email.trim())) {
+        errors.email = 'Please enter a valid email address';
+      }
     }
 
     if (!phoneRef.current || !isValidUSPhone(phoneRef.current)) {
@@ -67,6 +78,7 @@ export default function RegistrationForm({ onSubmit, error, isLoading }: Registr
     await onSubmit({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
+      email: email.trim().toLowerCase(),
       phone: phoneRef.current,
       password,
     });
@@ -120,6 +132,29 @@ export default function RegistrationForm({ onSubmit, error, isLoading }: Registr
             <p className="text-sm text-red-600">{formErrors.lastName}</p>
           )}
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+          Email Address *
+        </label>
+        <input
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (formErrors.email) {
+              setFormErrors((prev) => ({ ...prev, email: '' }));
+            }
+          }}
+          className="w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 outline-none focus:border-gray-900 focus:ring-0"
+          placeholder="your.email@example.com"
+          disabled={isLoading}
+        />
+        {formErrors.email && (
+          <p className="text-sm text-red-600">{formErrors.email}</p>
+        )}
       </div>
 
       <div className="space-y-2">

@@ -54,6 +54,7 @@ export default function HeroSection() {
   async function handleRegistration(data: {
     firstName: string;
     lastName: string;
+    email: string;
     phone: string;
     password: string;
   }) {

@@ -7,12 +7,21 @@ import { supabaseAdmin } from '@/lib/supabase/client';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { firstName, lastName, phone, password } = body;
+    const { firstName, lastName, email, phone, password } = body;
 
     // Validate required fields
-    if (!firstName || !lastName || !phone || !password) {
+    if (!firstName || !lastName || !email || !phone || !password) {
       return NextResponse.json(
         { error: 'All fields are required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return NextResponse.json(
+        { error: 'Invalid email format' },
         { status: 400 }
       );
     }
@@ -43,10 +52,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if email is already in use
+    const normalizedEmail = email.trim().toLowerCase();
+    const { data: existingEmailUser, error: emailCheckError } = await supabaseAdmin
+      .from('users')
+      .select('id')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
+
+    if (emailCheckError && emailCheckError.code !== 'PGRST116') {
+      console.error('Error checking for duplicate email:', emailCheckError);
+      return NextResponse.json(
+        { error: 'Error checking for existing email' },
+        { status: 500 }
+      );
+    }
+
+    if (existingEmailUser) {
+      return NextResponse.json(
+        { error: 'An account with this email already exists' },
+        { status: 400 }
+      );
+    }
+
     // Create Supabase Auth user
-    // Note: Supabase Auth requires an email, so we generate one internally for auth only
-    // We don't store email in our users table
-    const authEmail = `${e164Phone.replace(/\+/g, '')}@tusq.local`;
+    // Use the provided email for auth
+    const authEmail = normalizedEmail;
     
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email: authEmail,
@@ -92,17 +123,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create user profile in our database (no email stored)
+    // Create user profile in our database (with email)
     console.log('Creating user profile with data:', {
       phone: e164Phone,
       firstName,
       lastName,
+      email: normalizedEmail,
       authUserId: authData.user.id,
     });
     
     const user = await createUser(e164Phone, {
       firstName,
       lastName,
+      email: normalizedEmail,
       authUserId: authData.user.id,
     });
 

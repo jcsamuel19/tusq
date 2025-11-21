@@ -6,6 +6,7 @@ export async function createUser(
   options?: {
     firstName?: string;
     lastName?: string;
+    email?: string;
     authUserId?: string;
   }
 ): Promise<User | null> {
@@ -15,6 +16,7 @@ export async function createUser(
       phone_number: phoneNumber,
       first_name: options?.firstName || null,
       last_name: options?.lastName || null,
+      email: options?.email || null,
       auth_user_id: options?.authUserId || null,
       last_activity_at: new Date().toISOString(),
     })
@@ -130,6 +132,25 @@ export async function resumeUserDigests(userId: string): Promise<void> {
       updated_at: new Date().toISOString(),
     })
     .eq('id', userId);
+}
+
+export async function updateUserEmail(userId: string, email: string): Promise<User | null> {
+  const { data, error } = await supabaseAdmin
+    .from('users')
+    .update({
+      email: email.trim().toLowerCase(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error updating user email:', error);
+    return null;
+  }
+
+  return data;
 }
 
 export async function getIncompleteSurveys(daysAgo: number): Promise<User[]> {
